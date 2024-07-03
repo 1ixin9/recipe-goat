@@ -284,7 +284,10 @@ def call_reciGPT(ingredient, meal, flavor):
         Key Ingredient and key flavor compatibility: {context3}\n
         Key ingredient and meal type compatibility: {context4}\n\n
         
-        Make sure your recipe is formatted exactly like the following:\n\n
+        Make sure the recipe is exactly what the desired meal type is.
+        If the meal is a dinner but the key ingredient doesn't fit a traditional dinner,
+         use the key ingredient creatively in a dinner recipe.
+         Make sure your recipe is formatted exactly like the following:\n\n
         
         Recipe Name:\n
         Description:\n\n
@@ -295,6 +298,9 @@ def call_reciGPT(ingredient, meal, flavor):
         
         Instructions:\n
         
+        Do not separate the ingredients, preparation, or instructions section even if there are multiple components to the recipe.
+        Make sure everything is under their specific section.
+        Make sure all of the titles to each section are correctly placed.
         An example would be:\n\n
         
         Recipe Name: Banana Pie\n
