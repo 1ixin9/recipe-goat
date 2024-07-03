@@ -26,24 +26,37 @@
             color: #B13D24;
         }
         img {
-            max-width: 25%;
+            max-width: 18.5%;
             height: auto;
-            margin-bottom: 10px;
+            margin-bottom: 18px;
+        }
+        .input-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .input-container label {
+            font-weight: bold;
+            margin-right: 10px;
         }
         #user_input {
             color: #B13D24;
             border: 2px solid #B13D24;
             border-radius: 5px;
             padding: 5px;
+            width: 225px;
+            font-family: "Comic Sans MS", "Comic Sans", cursive;
         }
         h2 {
             color: #B13D24;
+            font-size: 20px;
+            margin-bottom: 10px;
         }
         select, #submit_button {
             font-family: inherit;
             font-size: 18px;
-        }
-        select {
             color: #B13D24;
             border: 2px solid #B13D24;
             border-radius: 5px;
@@ -51,12 +64,14 @@
         }
         #submit_button {
             background-color: #B13D24;
-            color: #ffffff; /* Font color for button */
+            color: #ffffff;
             border: 2px solid #892E17;
             border-radius: 5px;
             padding: 10px 20px;
             font-size: 18px;
             cursor: pointer;
+            margin-top: 25px;
+            margin-bottom: 30px;
         }
         #submit_button:hover {
             background-color: #892E17;
@@ -68,33 +83,36 @@
     <div class="container">
         <h1>Recipe Goat</h1>
         <img src="{{ url_for('static', filename='recipe-goat.png') }}" alt="Recipe Goat">
-        <h2>
-            <label for="user_input">Key Ingredient:</label><br>
-            <input type="text" id="user_input" name="user_input"><br><br>
-            <div class="form-group">
-                <select id="dropdown1" name="dropdown1">
-                    <option value="">Meal Type</option>
-                    <option value="Breakfast">Breakfast</option>
-                    <option value="Lunch">Lunch</option>
-                    <option value="Dinner">Dinner</option>
-                    <option value="Dessert">Dessert</option>
-                    <option value="Snack">Snack</option>
-                </select>
-                <select id="dropdown2" name="dropdown2">
-                    <option value="">Key Flavor</option>
-                    <option value="Salty">Salty</option>
-                    <option value="Sweet">Sweet</option>
-                    <option value="Spicy">Spicy</option>
-                    <option value="Sour">Sour</option>
-                    <option value="Bitter">Bitter</option>
-                </select>
-            </div>
-            </div>
-            <button id="submit_button">Submit</button>
-            <div id="response"></div>
-        </h2>
+        <div class="input-container">
+            <label for="user_input">Key Ingredient:</label>
+            <input type="text" id="user_input" name="user_input">
+        </div>
+        <div class="form-group">
+            <h2>Meal Type:</h2>
+            <select id="dropdown1" name="dropdown1">
+                <option value="">Select Meal Type</option>
+                <option value="Breakfast">Breakfast</option>
+                <option value="Lunch">Lunch</option>
+                <option value="Dinner">Dinner</option>
+                <option value="Dessert">Dessert</option>
+                <option value="Snack">Snack</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <h2>Key Flavor:</h2>
+            <select id="dropdown2" name="dropdown2">
+                <option value="">Select Key Flavor</option>
+                <option value="Salty">Salty</option>
+                <option value="Sweet">Sweet</option>
+                <option value="Spicy">Spicy</option>
+                <option value="Sour">Sour</option>
+                <option value="Bitter">Bitter</option>
+            </select>
+        </div>
+        <button id="submit_button">Submit</button>
+        <div id="response"></div>
     </div>
-<script>
+    <script>
         $(document).ready(function() {
             $('#submit_button').on('click', function() {
                 var userInput = $('#user_input').val();
