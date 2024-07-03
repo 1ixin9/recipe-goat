@@ -1,6 +1,4 @@
 from langchain.prompts import PromptTemplate
-# for grading but not used since the template is kinda confusing
-from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_community.chat_models import QianfanChatEndpoint
 from langchain.embeddings import QianfanEmbeddingsEndpoint
 from langchain_core.output_parsers import StrOutputParser
@@ -15,6 +13,9 @@ import time
 
 # use ur own keys
 from keys import qianfan_ak, qianfan_sk, def_keys
+
+qianfan_ak = "DAEEqjuvglLTgQMCXqRvqfUj"
+qianfan_sk = "s0AJ849GNB6440lwLWDvGuNEJNrgrbQ3"
 
 tavily_api_key = os.getenv("TAVILY_API_KEY")
 dashscope_api_key = os.getenv("DASHSCOPE_API_KEY")
@@ -32,44 +33,44 @@ embed = QianfanEmbeddingsEndpoint(
 # list of all the prompts we use
 prompt1 = PromptTemplate(
     template="""
-    You are a cooking assistant for recipe writing that specializes in product identification.
-    Consider the product {prod}'s key flavor features and user reviews.
-    Detail the product's unique selling points and competitive advantages in the market.
-    Please provide insights on how the product appeals to the general public. \n\n
-    Use the following information primarily to come up with an answer: \n
+    You are a cooking assistant for recipe writer and you specialize in ingredient research.
+    Consider the ingredient {prod}'s key features and consumer reviews.
+    Detail the ingredient's unique points and qualities.
+    Please provide insights on how the ingredient appeals to the general public. \n\n
+    Use the following information to come up with your answer: \n
     {context}""",
     input_variables=["prod", "context"]
 )
 
 prompt2 = PromptTemplate(
     template="""
-    请分析使用{prod}的主要目标人群的特征、偏好和需求。
-    结合季节和节日，说明这些人群在这个时间点对{prod}的需求和期望。\n\n
-    主要使用以下信息来得出答案: \n
+    You are a cooking assistant for recipe writer and you specialize in ingredient flavor research.
+    Consider the ingredient {prod}'s key flavor features and flavor reviews.
+    Please provide insights on how the ingredient's flavor appeals to the general public. \n\n
+    Use the following information to come up with your answer: \n
     {context}""",
     input_variables=["prod", "context"]
 )
 
 prompt3 = PromptTemplate(
     template="""
-    请详细说明{prod}在{season}时间点的最佳使用方法和搭配。
-    考虑到食材的季节性和营养价值，
-    解释为什么在这个时间点使用{prod}最为合适。\n\n
-    主要使用以下信息来得出答案: \n
+    You are a cooking assistant for recipe writer and you specialize in ingredient flavor compatibility research.
+    Consider the ingredient {prod}'s key flavors and how it would best fit a {flavor} dish.
+    Please provide insights on how the ingredient may either highlight, complement, or star in a {flavor} dish. \n\n
+    Use the following information to come up with your answer: \n
     {context}""",
-    input_variables=["prod", "season", "context"]
+    input_variables=["prod", "flavor", "context"]
 )
 
 prompt4 = PromptTemplate(
     template="""
-    请提供关于在{season}时间点使用{prod}进行促销活动或节日活动的建议。
-    详细说明如何利用节日气氛和季节特点来提升{prod}的销量和品牌知名度。\n\n
-    主要使用以下信息来得出答案: \n
+    You are a cooking assistant for recipe writer and you specialize in meal creation research.
+    Consider the ingredient {prod}'s key qualities and how it might fit as a {meal} meal.
+    Please provide insights on how the ingredient may either highlight, complement, or star as a {meal} dish. \n\n
+    Use the following information to come up with your answer: \n
     {context}""",
-    input_variables=["prod", "season", "context"]
+    input_variables=["prod", "meal", "context"]
 )
-
-# splits the text into chunks to be processed
 
 
 def split_text(text):
@@ -88,11 +89,9 @@ def split_text(text):
 
     return chunks
 
-# performs rag search via scraping baidu
-
 
 def rag_search(query):
-    url = "https://www.baidu.com/s"
+    url = "https://www.google.com/search?q="
 
     search_query = {'wd': query}
 
@@ -116,12 +115,10 @@ def rag_search(query):
     for doc in docs:
         page_text = re.sub("\n\n+", "\n", doc)
 
-        if page_text and page_text != "问题反馈":
+        if page_text:
             content.append(page_text)
 
     return content
-
-# gets the info from the actual webpages
 
 
 def get_page(urls):
@@ -139,8 +136,6 @@ def get_page(urls):
             docs.extend(chunks)
 
     return docs
-
-# performs searching, embeds query + search to get similarity score, returns the content
 
 
 def process_search(query):
@@ -171,9 +166,10 @@ def process_search(query):
         return "couldn't embed search results"
 
     search_embed = np.array(search_embed)
-    similarity_scores = np.dot(q_embed, search_embed.T)
+    similarity_scores = np.dot(search_embed.T, q_embed) / (
+        np.linalg.norm(search_embed.T, axis=1) * np.linalg.norm(q_embed))
     filtered_results = [(result, score) for result, score in zip(
-        search_result, similarity_scores) if score > 0.5]
+        search_result, similarity_scores) if score > 0.75]
 
     max_ctxt = 3
     if len(filtered_results) < 3:
@@ -185,14 +181,12 @@ def process_search(query):
 
     return rag_results
 
-# feeds query into an llm to rewrite for optimized search results
-
 
 def re_search(query):
     promptV2 = PromptTemplate(
         template="""    
-        你是一个搜索输入重写器，将搜索输入转换为优化后的版本以便进行网络搜索。\n     
-        优化以下内容。只回复优化后的搜索查询：\n    
+        You are a search engine input writer that optimizes queries for online searching.\n     
+        Optimize the following query to get the best search results and only output the result query:\n    
         {query}     
         """,
         input_variables=["query"]
@@ -204,22 +198,22 @@ def re_search(query):
 
     return process_search(new_query)
 
-# performs the crag process by grading and then re-searching if necessary
 
-
-def crag_search(llm, prompt, prod_des, season, keywords, add_season=None):
-    query = prod_des + keywords
-    if add_season:
-        query = query + season
+def crag_search(llm, prompt, ingredient, keywords, meal=None, flavor=None):
+    query = ingredient + keywords
+    if meal:
+        query = query + " " + meal
+    if flavor:
+        query = query + " " + flavor
 
     search_result = process_search(query)
 
     grade_prompt = PromptTemplate(
         template="""    
-        搜索结果相关性检查的二进制评分。\n   
-        搜索结果: \n\n {result} 
-        \n\n 搜索输入: {query}
-        \n\n搜索结果与搜索相关，'yes' 或 'no'
+        Determine whether the following search results are relevant to the query\n   
+        Search results: \n\n {result} 
+        \n\n Query: {query}
+        \n\nRespond with only either 'yes' or 'no':
         """,
         input_variables=["query", "result"]
     )
@@ -235,13 +229,10 @@ def crag_search(llm, prompt, prod_des, season, keywords, add_season=None):
     expertGPT = prompt | llm | StrOutputParser()
 
     return expertGPT.invoke(
-        {"prod": prod_des, "season": season, "context": search_result})
+        {"prod": ingredient, "flavor": flavor, "meal": meal, "context": search_result})
 
 
-def call_reciGPT():
-    # below is input if u wanna do that
-    # prod_des = input("Enter product:")
-    # season = input("Enter season:")
+def call_reciGPT(ingredient, meal, flavor):
 
     prod_des = "伊利羊奶粉"
     season = "万圣节"
@@ -249,21 +240,20 @@ def call_reciGPT():
     context = []
 
     # defines threading function
-    def call_crag(llm, prompt, prod_des, season, keywords, add_season=None):
-        ctxt = crag_search(llm, prompt, prod_des, season, keywords, add_season)
+    def call_crag(llm, prompt, ingredient, keywords, meal=None, flavor=None):
+        ctxt = crag_search(llm, prompt, ingredient, keywords, meal, flavor)
         context.append(ctxt)
 
     # initializes threads
     t1 = threading.Thread(target=call_crag, args=(
-        llm, prompt1, prod_des, season, "产品特点 市场定位 用户反馈 卖点 竞争优势"))
+        llm, prompt1, ingredient, meal, flavor, " review quality what is "+ingredient))
     t2 = threading.Thread(target=call_crag, args=(
-        llm2, prompt2, prod_des, season, "目标人群 特征 偏好 需求 季节 节日"))
+        llm2, prompt2, ingredient, meal, flavor, " taste flavor texture review "))
     t3 = threading.Thread(target=call_crag, args=(
-        llm, prompt3, prod_des, season, "最佳使用方法 搭配 食材季节性 营养价值", True))
+        llm, prompt3, ingredient, meal, flavor, " with "))
     t4 = threading.Thread(target=call_crag, args=(
-        llm2, prompt4, prod_des, season, "促销活动 节日活动 提升销量 品牌知名度", True))
+        llm2, prompt4, ingredient, meal, flavor, " for "))
 
-    # starts threads w 2 secs wait time inbtw so as to not overload requests
     t1.start()
     time.sleep(2)
     t2.start()
@@ -278,45 +268,60 @@ def call_reciGPT():
     t4.join()
 
     prompt5 = PromptTemplate(
-        template="""你是一位美食和烹饪大师，能够为特定的食品或食材创作出应季的菜品推荐。
-        你熟悉食材的生长规律、生长习性和成分变化，能准确推荐每种食材在一年中最佳的食用月份和季节。
-        你将用专业的知识和优美清新的文字，向人们解释为什么这个月是最佳食用时间。
-        你的独特见解和丰富知识，将为读者带来耳目一新的体验，并为目标客户人群提供情感价值。\n\n
+        template="""You are an educated and creative recipe writer. You take in a specific ingredient 
+        and a specific type of meal (breakfast/lunch/etc.) and a key flavor (salty/sweet/etc.) 
+        in order to write a recipe that matches the meal type, key flavor, and features the ingredient 
+        as its key ingredient.\n\n
 
-        请参考以下专家的建议：\n\n
+        Key Ingredient: {prod}\n\n
+        Meal Type: {meal}\n\n
+        Key Flavor: {flavor}\n\n
+        
+        Primarily use the following information to come up with your recipe:
 
-        产品运营专家说：{context1}\n
-        人群运营专家说：{context2}\n
-        时令食材运营专家说：{context3}\n
-        节点活动运营专家说：{context4}\n
-        针对给定的{prod}（商品）和{season}时间点，写三道推荐菜品。
-        请输出如下格式的食谱，并确保所有准备步骤（如预热烤箱等）都在指示的开始部分，以便遵循食谱的人能够从头到尾直观地操作：\n\n
-
-        菜名\n
-        对该菜品的简短描述，包含亮点，如何最佳利用该食材，以及如何适应这个季节。\n\n
-
-        食材\n
-        总时间（准备时间，烹饪时间）\n\n
-
-        准备步骤\n
-        步骤1\n
-        步骤2\n
-        等等\n
-        烹饪步骤\n
-        步骤1\n
-        步骤2\n
-        等等\n\n
-        享用！""",
+        Key Ingredient qualities: {context1}\n
+        Flavor and texture profile of key ingredient: {context2}\n
+        Key Ingredient and key flavor compatibility: {context3}\n
+        Key ingredient and meal type compatibility: {context4}\n\n
+        
+        Make sure your recipe is formatted exactly like the following:\n\n
+        
+        Recipe Name:\n
+        Description:\n\n
+        
+        Ingredients:\n\n
+        
+        Preparation:\n\n
+        
+        Instructions:\n
+        
+        An example would be:\n\n
+        
+        Recipe Name: Banana Pie\n
+        Description: A delicious banana pie.\n\n
+        
+        Ingredients:\n
+        1. 2 bananas\n
+        2. etc.\n\n
+        
+        Preparation:\n
+        1. Step 1\n
+        2. etc.\n\n
+        
+        Instructions:\n
+        1. Step 1\n
+        2. etc.
+        """,
         input_variables=["prod", "context1", "context2",
-                         "context3", "context4", "season"]
+                         "context3", "context4", "meal", "flavor"]
     )
 
     reciGPT = prompt5 | llm | StrOutputParser()
 
     try:
         ans = reciGPT.invoke(
-            {"prod": prod_des, "context1": context[0], "context2": context[1],
-             "context3": context[2], "context4": context[3], "season": season})
+            {"prod": ingredient, "context1": context[0], "context2": context[1],
+             "context3": context[2], "context4": context[3], "meal": meal, "flavor": flavor})
     except Exception as e:
         print("error: ", e)
         return
@@ -324,4 +329,23 @@ def call_reciGPT():
     return ans
 
 
-print(call_reciGPT())
+def parse_recipe(ingredient, meal, flavor):
+
+    output = call_reciGPT(ingredient, meal, flavor)
+
+    patterns = {
+        "Recipe Name": r"Recipe Name:\s*(.*?)\n",
+        "Description": r"Description:\s*(.*?)\n\n",
+        "Ingredients": r"Ingredients:\n\s*(.*?)\n\n",
+        "Preparation": r"Preparation:\n\s*(.*?)\n\n",
+        "Instructions": r"Instructions:\n\s*(.*)"
+    }
+
+    recipe_dict = {}
+
+    for key, pattern in patterns.items():
+        match = re.search(pattern, output, re.DOTALL)
+        if match:
+            recipe_dict[key] = match.group(1).strip()
+
+    return recipe_dict

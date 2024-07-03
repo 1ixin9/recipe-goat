@@ -76,7 +76,6 @@
         #submit_button:hover {
             background-color: #892E17;
         }
-
     </style>
 </head>
 <body>
@@ -112,7 +111,12 @@
         <button id="submit_button">Submit</button>
         <div id="response"></div>
     </div>
+    <audio id="audio" src="{{ url_for('static', filename='submit-sound.mp3') }}"></audio>
     <script>
+        function redirectToResultPage(userInput, dropdown1, dropdown2) {
+            window.location.href = `/result?user_input=${encodeURIComponent(userInput)}&dropdown1=${encodeURIComponent(dropdown1)}&dropdown2=${encodeURIComponent(dropdown2)}`;
+        }
+
         $(document).ready(function() {
             $('#submit_button').on('click', function() {
                 var userInput = $('#user_input').val();
@@ -126,8 +130,9 @@
                         dropdown1: dropdown1,
                         dropdown2: dropdown2
                     },
-                    success: function(response) {
-                        $('#response').text('Response from Flask: ' + response);
+                    success: function() {
+                        document.getElementById('audio').play();
+                        redirectToResultPage(userInput, dropdown1, dropdown2);
                     }
                 });
             });
