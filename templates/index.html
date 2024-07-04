@@ -111,7 +111,8 @@
         <button id="submit_button">Submit</button>
         <div id="response"></div>
     </div>
-    <audio id="audio" src="{{ url_for('static', filename='submit-sound.mp3') }}"></audio>
+    <audio id="submit-audio" src="{{ url_for('static', filename='submit-sound.mp3') }}"></audio>
+    <audio id="next-audio" src="{{ url_for('static', filename='plug.wav') }}"></audio>
     <script>
         function redirectToResultPage(userInput, dropdown1, dropdown2) {
             window.location.href = `/result?user_input=${encodeURIComponent(userInput)}&dropdown1=${encodeURIComponent(dropdown1)}&dropdown2=${encodeURIComponent(dropdown2)}`;
@@ -131,8 +132,15 @@
                         dropdown2: dropdown2
                     },
                     success: function() {
-                        document.getElementById('audio').play();
-                        redirectToResultPage(userInput, dropdown1, dropdown2);
+                        var submitAudio = document.getElementById('submit-audio');
+                        var nextAudio = document.getElementById('next-audio');
+
+                        submitAudio.play();
+
+                        submitAudio.onended = function() {
+                            redirectToResultPage(userInput, dropdown1, dropdown2);
+                            nextAudio.play();
+                        };
                     }
                 });
             });

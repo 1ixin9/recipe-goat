@@ -14,11 +14,6 @@ import time
 # use ur own keys
 from keys import qianfan_ak, qianfan_sk, def_keys
 
-qianfan_ak = "DAEEqjuvglLTgQMCXqRvqfUj"
-qianfan_sk = "s0AJ849GNB6440lwLWDvGuNEJNrgrbQ3"
-
-tavily_api_key = os.getenv("TAVILY_API_KEY")
-dashscope_api_key = os.getenv("DASHSCOPE_API_KEY")
 def_keys()
 
 # models
@@ -286,8 +281,8 @@ def call_reciGPT(ingredient, meal, flavor):
         
         Make sure the recipe is exactly what the desired meal type is.
         If the meal is a dinner but the key ingredient doesn't fit a traditional dinner,
-         use the key ingredient creatively in a dinner recipe.
-         Make sure your recipe is formatted exactly like the following:\n\n
+        use the key ingredient creatively in a dinner recipe.
+        Make sure your recipe is formatted exactly like the following:\n\n
         
         Recipe Name:\n
         Description:\n\n
@@ -300,6 +295,7 @@ def call_reciGPT(ingredient, meal, flavor):
         
         Do not separate the ingredients, preparation, or instructions section even if there are multiple components to the recipe.
         Make sure everything is under their specific section.
+        The ingredients should only be separated by one line each at MOST.
         Make sure all of the titles to each section are correctly placed.
         An example would be:\n\n
         
